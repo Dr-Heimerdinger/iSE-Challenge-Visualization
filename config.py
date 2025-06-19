@@ -1,25 +1,28 @@
 import os
 from dotenv import load_dotenv
 
+# Load environment variables from .env file
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-LLM_MODEL = os.getenv("MODEL")
-
+# --- PATHS ---
+# Main project directories
 GENERATED_CODE_DIR = "generated_code"
+TASK_EXAMPLES_DIR = "task_example"
+PROMPTS_DIR = "prompts"
 
-DATA_PREP_MODULE_NAME = "data_preparer_module"
-DATA_PREP_MODULE_PATH = os.path.join(GENERATED_CODE_DIR, f"{DATA_PREP_MODULE_NAME}.py")
+DEFAULT_TASK_YAML_PATH = os.getenv("YAML_FILE_DIR")
 
-PREPROCESSOR_MODULE_NAME = "preprocessor"
-PREPROCESSOR_MODULE_PATH = os.path.join(GENERATED_CODE_DIR, f"{PREPROCESSOR_MODULE_NAME}.py")
+# --- LLM & API ---
+# API Key for OpenAI
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Models for generation and debugging
+GENERATOR_MODEL = os.getenv("MODEL")
+DEBUGGER_MODEL = os.getenv("MODEL")
 
-
-POSTPROCESSOR_MODULE_NAME = "postprocessor"
-POSTPROCESSOR_MODULE_PATH = os.path.join(GENERATED_CODE_DIR, f"{POSTPROCESSOR_MODULE_NAME}.py")
-
-
-GENERATED_UI_PATH = os.path.join(GENERATED_CODE_DIR, "generated_ui.py")
-
-MAX_DEBUG_ATTEMPTS = 3
-EXECUTION_TIMEOUT = 20
+# --- EXECUTION ---
+# Max attempts for the debugging loop
+MAX_DEBUG_ATTEMPTS = 2
+# Timeout for sandbox execution in seconds
+SANDBOX_TIMEOUT = 60
+# Port for Gradio to run on
+GRADIO_SERVER_PORT = 8080
