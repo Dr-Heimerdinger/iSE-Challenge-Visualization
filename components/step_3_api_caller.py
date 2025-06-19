@@ -10,6 +10,7 @@ def get_api_example(api_url, payload):
     if not payload:
         print("No payload to send.")
         return None
+    print(f"DEBUG: Payload being sent to API: {payload}")
 
     files_to_send = {}
     json_payload = {}
@@ -35,7 +36,7 @@ def get_api_example(api_url, payload):
 
         response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
         api_output = response.json()
-        print("Successfully fetched API example.")
+        print("Successfully fetched API example.", api_output)
         return api_output
     except requests.exceptions.RequestException as e:
         print(f"Error calling API: {e}")

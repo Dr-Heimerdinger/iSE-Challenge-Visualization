@@ -11,7 +11,7 @@ def execute_and_debug(llm_client: LLMClient):
     print("\n--- STEPS 5 & 6: Executing and Debugging the Code ---")
     
     for attempt in range(config.MAX_DEBUG_ATTEMPTS):
-        print(f"\n>> Attempt {attempt + 1}/{config.MAX_DEBUG_ATTEMPTS}...")
+        print(f"\n>> Attempt {attempt + 1}/{config.MAX_DEBUG_ATTEMPTS} to run the generated UI...")
         process = None
         try:
             # Start the Gradio app as a subprocess
@@ -33,12 +33,12 @@ def execute_and_debug(llm_client: LLMClient):
                 _, stderr = process.communicate()
                 raise RuntimeError(f"Code execution failed with return code {return_code}:\n{stderr}")
 
-            # If the process is still running after the timeout, assume it's stable
-            print("="*50)
+            # If the process is still running, assume it's stable
+            print("="*60)
             print(">> EXECUTION SUCCESSFUL! <<")
-            print(f">> Gradio interface is running. Access it at http://localhost:8080")
+            print(f">> Gradio interface is likely running. Access it at http://localhost:8080")
             print(">> Press Ctrl+C in this terminal window to stop the pipeline.")
-            print("="*50)
+            print("="*60)
             process.wait()  # Keep the main script alive while the subprocess runs
             return True
 
@@ -51,12 +51,16 @@ def execute_and_debug(llm_client: LLMClient):
                 return False
 
             print(">> Sending the error to the LLM to fix the code...")
-            with open(config.GENERATED_UI_PATH, 'r', encoding='utf-8') as f:
-                faulty_code = f.read()
+            try:
+                with open(config.GENERATED_UI_PATH, 'r', encoding='utf-8') as f:
+                    faulty_code = f.read()
+            except FileNotFoundError:
+                print("Could not read the generated UI file to send for debugging. Stopping.")
+                return False
 
             fix_prompt = f"""
-The following Python code produced an error during execution.
-Please fix it. Only return the corrected source code, with no additional explanations.
+The following Python Gradio script produced an error during execution.
+Please analyze the error and fix the script. Only return the complete, corrected Python source code, with no additional explanations or comments.
 
 ERROR:
 ---
@@ -69,12 +73,12 @@ FAULTY SOURCE CODE:
 ---
 """
             fixed_code = llm_client.call(fix_prompt)
-            if fixed_code:
-                print(">> Received fixed code. Overwriting the file and retrying...")
+            if fixed_code and "import gradio" in fixed_code:
+                print(">> Received fixed code from LLM. Overwriting the file and retrying...")
                 with open(config.GENERATED_UI_PATH, 'w', encoding='utf-8') as f:
                     f.write(fixed_code)
             else:
-                print("LLM could not fix the code. Stopping.")
+                print("LLM could not provide a valid fix. Stopping.")
                 return False
         finally:
             # Clean up the subprocess if it's still alive

@@ -1,5 +1,3 @@
-# visualize/components/step_1_yaml_parser.py
-
 import yaml
 
 def parse_yaml(yaml_path):

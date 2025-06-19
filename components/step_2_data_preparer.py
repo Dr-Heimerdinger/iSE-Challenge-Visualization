@@ -1,3 +1,5 @@
+# visualize/components/step_2_data_preparer.py
+
 import os
 import json
 import importlib.util
@@ -8,26 +10,19 @@ import pathlib
 
 def prepare_sample_data(task_info, task_dir, llm_client: LLMClient):
     """
-    Uses the LLM to generate and execute code for preparing sample data.
+    Uses the LLM to generate Python code that prepares a sample data payload,
+    then executes that code.
     """
     print("\n--- STEP 2: Automatically Preparing Sample Data ---")
-    
-    # Validate inputs
-    if not isinstance(llm_client, LLMClient) or not hasattr(llm_client, 'call'):
-        print("Error: Invalid LLMClient provided")
-        return None
 
     model_info = task_info.get('model_information', {})
     dataset_info = task_info.get('dataset_description', {})
-    
-    # Validate model_info and dataset_info
+
     if not model_info or not dataset_info:
         print("Error: Missing model_information or dataset_description in task_info")
         return None
 
     data_dir = os.path.join(task_dir, 'data')
-    
-    # Check if data_dir exists and contains files
     try:
         data_files = os.listdir(data_dir)
         if not data_files:
@@ -37,46 +32,45 @@ def prepare_sample_data(task_info, task_dir, llm_client: LLMClient):
         print(f"Error: Data directory not found at '{data_dir}'")
         return None
 
-    # Precompute JSON strings for the prompt
-    try:
-        model_input_format = json.dumps(model_info.get('input_format', {}), indent=2)
-        dataset_description = json.dumps(dataset_info, indent=2)
-        data_files_json = json.dumps(data_files, indent=2)
-    except (TypeError, ValueError) as e:
-        print(f"Error: Failed to serialize model_info or dataset_info: {e}")
-        return None
+    model_input_format = json.dumps(model_info.get('input_format', {}), indent=2)
+    dataset_description = json.dumps(dataset_info, indent=2)
+    data_files_json = json.dumps(data_files, indent=2)
 
-    # Construct the prompt
+    # This is the new, unambiguous prompt that only asks for Python code.
     prompt = f"""
-You are a Python data processing expert. Write a single Python function named `prepare_sample_data(data_dir, task_dir)` to prepare an input sample for an ML model.
+You are an expert Python developer. Your single task is to write a complete Python function `prepare_sample_data(data_dir, task_dir)`. This function will read one sample file and prepare it as a dictionary for an API call.
 
-REQUIREMENTS:
-1. The function takes `data_dir` (path to the directory containing data) and `task_dir` (path to the task directory) as input.
-2. The function must read ONE data sample from `data_dir`.
-3. The function must return a dictionary (payload) with the exact structure described in the `MODEL INPUT FORMAT` below.
-4. Use standard Python libraries (e.g., os, pandas, json, csv) for data processing.
-5. Do not include external dependencies or print statements in the function.
+**FUNCTION REQUIREMENTS:**
+1.  The function signature MUST be `def prepare_sample_data(data_dir, task_dir):`.
+2.  It MUST read exactly ONE sample file from the `data_dir`. You can pick the first file found in the directory.
+3.  It MUST handle different file types. For images (e.g., jpg, png), it must read the file in binary mode and encode it into a UTF-8 base64 string. For text files (e.g., csv, txt), it can read the first line.
+4.  The function's return value MUST be a Python dictionary.
+5.  The return value must be a dictionary that matches the keys and structure described in `MODEL INPUT FORMAT`. 
+    Do NOT include metadata like 'type', 'description', or 'encoding' as values — only real input data should be used. 
+    For example, if the schema says {{"data": "base64"}}, your return should be {{"data": "<base64_string>"}}.
+6.  The function MUST import all necessary libraries inside itself (e.g., `import os`, `import base64`).
+7.  The function must NOT contain any print statements.
 
-**EXAMPLE OF A CORRECT RETURN VALUE:**
-If the model's input format is `{{ "texts": "a string" }}`, your function should return something like `{{ "texts": "I am feeling happy today." }}`.
-If the model's input format is `{{ "image_path": "path to image" }}`, your function should return `{{ "image_path": "task_example/image_classification/data/cat.jpg" }}`.
+**NECESSARY INFORMATION FOR WRITING THE FUNCTION:**
 
-NECESSARY INFORMATION:
-1. MODEL INPUT FORMAT:
+1.  **MODEL INPUT FORMAT (The schema your returned dictionary must follow):**
 {model_input_format}
-2. DATASET DESCRIPTION:
+
+2.  **DATASET DESCRIPTION (Context about the data):**
 {dataset_description}
-3. FILES IN DATA DIRECTORY:
+
+3.  **FILES IN DATA DIRECTORY (Example files your function can read):**
 {data_files_json}
 
-Now, write the Python source code for the prepare_sample_data function. Return only the source code.
+Now, write only the complete and correct Python source code for the `prepare_sample_data` function. Do not add any explanations or comments outside the function.
+Remember: your returned dictionary must contain actual **input values**, not the field schema itself.
 """
 
     try:
-        # Call LLM to generate code
+        print("Sending request to LLM to generate data preparation code...")
         data_prep_code = llm_client.call(prompt)
-        if not data_prep_code:
-            print("Error: LLM did not return any code for data preparation")
+        if not data_prep_code or "def prepare_sample_data" not in data_prep_code:
+            print(f"Error: LLM did not return valid Python code for the function. Response:\n{data_prep_code}")
             return None
 
         # Validate generated code syntax
@@ -86,39 +80,36 @@ Now, write the Python source code for the prepare_sample_data function. Return o
             print(f"Error: Generated code has invalid syntax: {e}")
             return None
 
-        # Ensure the output directory exists
-        pathlib.Path(os.path.dirname(config.DATA_PREP_MODULE_PATH)).mkdir(parents=True, exist_ok=True)
-
         # Write the generated code to a file
+        pathlib.Path(config.GENERATED_CODE_DIR).mkdir(parents=True, exist_ok=True)
         with open(config.DATA_PREP_MODULE_PATH, "w", encoding="utf-8") as f:
             f.write(data_prep_code)
         print(f"Successfully generated data preparation code at {config.DATA_PREP_MODULE_PATH}")
 
         # Load and execute the generated module
         spec = importlib.util.spec_from_file_location(config.DATA_PREP_MODULE_NAME, config.DATA_PREP_MODULE_PATH)
-        if spec is None:
+        if spec is None or spec.loader is None:
             print(f"Error: Failed to create module spec for {config.DATA_PREP_MODULE_PATH}")
             return None
 
         data_preparer = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(data_preparer)
 
-        # Check if the required function exists
         if not hasattr(data_preparer, 'prepare_sample_data'):
             print("Error: Generated code does not define 'prepare_sample_data' function")
             return None
 
-        # Execute the generated function
+        # Execute the generated function to get the payload
         payload = data_preparer.prepare_sample_data(data_dir, task_dir)
-        print(f"Successfully created sample payload: {payload}")
+        
+        # Final validation of the payload
+        if not isinstance(payload, dict):
+            print(f"Error: The generated function returned a {type(payload)}, but a dictionary was expected.")
+            return None
+            
+        print(f"Successfully created sample payload via generated code.")
         return payload
 
-    except FileNotFoundError as e:
-        print(f"Error: File operation failed: {e}")
-        return None
-    except AttributeError as e:
-        print(f"Error: Invalid generated code structure: {e}")
-        return None
     except Exception as e:
         print(f"An unexpected error occurred during data preparation: {e}")
         return None
