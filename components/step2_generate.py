@@ -8,10 +8,8 @@ from utils.context import TaskContext
 from config import GENERATED_CODE_DIR, PROMPTS_DIR, GENERATOR_MODEL
 
 def run(task_info: dict) -> str | None:
-    """
-    Step 2: Generate Gradio UI code based on task description and context
-    """
-    print("--- Running Step 2: Generate Gradio UI 3.50.2 Code ---")
+
+    print("--- Running Step 2: Generate UI Code ---")
 
     if not task_info:
         print("❌ Error: Invalid task_info provided to Step 2")
@@ -60,12 +58,8 @@ def run(task_info: dict) -> str | None:
     verified_output = task_info.get("model_io", {}).get("verified_output", {})
     
     # Prepare port
-    port = task_info.get("model_information", {}).get("port", 8080)
+    port = 8080
     
-    # Prepare gradio warnings
-    gradio_warnings = """- DEPRECATION: 'file_types_allow_multiple' → Use 'file_count="multiple"'
-- Never repeat a keyword argument (e.g., `type='filepath', type='numpy'` is invalid)
-- Always use absolute paths for file components"""
 
     # Format user prompt
     prompt_variables = {
@@ -80,8 +74,8 @@ def run(task_info: dict) -> str | None:
         "data_path": task_info.get("data_path", ""),
         "dataset_description": dataset_desc_str,
         "auxiliary_file_paths": auxiliary_paths_str,
-        "gradio_warnings": gradio_warnings,
-        "context": json.dumps(context.to_dict(), indent=2)  # Include context
+        "context": json.dumps(context.to_dict(), indent=2),
+        "api_handler_code": task_info.get("api_handler_code")
     }
     
     user_prompt = user_prompt_template.format(**prompt_variables)
@@ -97,7 +91,7 @@ def run(task_info: dict) -> str | None:
         # Generate safe filename
         task_name = task_info.get('task_name', 'unknown_task')
         safe_task_name = re.sub(r'\s+', '_', task_name)
-        script_path = os.path.join(GENERATED_CODE_DIR, f"{safe_task_name}_ui.py")
+        script_path = os.path.join(GENERATED_CODE_DIR, f"{safe_task_name}_app.py")
 
         # Save UI code
         with open(script_path, "w", encoding="utf-8") as f:

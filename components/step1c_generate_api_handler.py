@@ -112,7 +112,7 @@ def run(task_info: dict) -> dict | None:
         task_info["api_handler_code"] = cleaned_code
         task_info["shared_context"] = context
         
-        print("✅ API handler code generated.")
+        print("✅ API handler code generated.", task_info["api_handler_code"])
         return task_info
         
     except Exception as e:

@@ -26,7 +26,6 @@ SHARED_CONTEXT = {
     "input_format": {},
     "output_format": {},
     "auxiliary_files": {},
-    "gradio_version": "3.50.2"
 }
 
 # --- EXECUTION ---
@@ -34,5 +33,7 @@ SHARED_CONTEXT = {
 MAX_DEBUG_ATTEMPTS = 3
 # Timeout for sandbox execution in seconds
 SANDBOX_TIMEOUT = 120
-# Port for Gradio to run on
-GRADIO_SERVER_PORT = 8080
+
+# Add Streamlit-specific config
+STREAMLIT_PORT = 8501
+STREAMLIT_CONFIG_FILE = os.path.expanduser("~/.streamlit/config.toml")
