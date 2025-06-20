@@ -6,7 +6,7 @@ ANALYSIS PROCESS:
 1. Examine the error message to identify the error type and location
 2. Review the code for syntax issues, missing imports, type mismatches, and logical errors
 3. Check for Gradio-specific issues:
-   - For "unexpected keyword argument" errors in Gradio 5.34.0:
+   - For "unexpected keyword argument" errors in Gradio 3.30.0:
      * 'file_types_allow_multiple' → Remove and use file_count='multiple' instead
      * Duplicate 'type' arguments → Remove duplicates
    - For FileNotFoundError: Verify absolute paths from auxiliary_file_paths

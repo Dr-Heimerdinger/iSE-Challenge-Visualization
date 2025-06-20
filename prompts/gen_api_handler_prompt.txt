@@ -1,0 +1,18 @@
+You are an expert Python developer. Generate ONLY the API handling function and post-processing logic based on the specification.
+
+Input:
+- API URL: {api_url}
+- Input Function Information in UI: {input_function}
+- Detailed description for type of input's elements: {description}
+- Processed Input Example: {verified_input}
+- Verified Output Example: {verified_output}
+- Post-processing Steps: {post_processing}
+
+Requirements:
+1. Analyze the Input Function Information in UI and the Detailed description for the type of input elements to create a function named `call_model_api(input_data)`
+For example: The input fields accept uploading a list of images and the description tells that the image is encoded in base64 format, so the function has to convert to base64 before sending the request. 
+4. Use requests.post() with timeout=30
+5. Implement error handling for network issues
+6. Apply the specified post-processing to the API response
+7. Return the processed result
+8. Include necessary imports

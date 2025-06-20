@@ -27,32 +27,40 @@ You are an expert Python and Gradio debugger. A generated script has failed. You
 **1. The Error Message:**
 {error_message}
 
-
 **2. The Failed Code:**
 ```python
 {bad_code}
-3. Full Task Context (This is crucial for a correct fix):
+```
+
+**3. Full Task Context (This is crucial for a correct fix):**
 This context was used to generate the original script. Use it to understand the script's goal, expected data formats, and file dependencies.
 Task Description: {task_description}
 Model I/O Format:
 {model_io}
 Critical Auxiliary File Paths (You MUST use these absolute paths):
 {auxiliary_file_paths}
-4. GRADIO VERSION CONTEXT:
-We are using Gradio 5.34.0. Remember these critical changes:
+
+**4. GRADIO VERSION CONTEXT:**
+We are using Gradio 3.30.0. Remember these critical changes:
 - file_types_allow_multiple is DEPRECATED → Use file_count='multiple'
 - Never repeat keyword arguments in components
 - Always use absolute paths from auxiliary_file_paths
+- **CRITICAL: All event handlers (.click, .submit, etc.) MUST be defined INSIDE the gr.Blocks() context**
 
-5. SANDBOX EXECUTION CONTEXT:
+**5. SANDBOX EXECUTION CONTEXT:**
 - The script will be validated without launching the Gradio server
 - Ensure all function definitions are correct
 - Make sure there are no infinite loops
 - Verify all file paths are absolute
 - Confirm all imports are valid
 
-Your Mission:
-Based on the error and the full task context, rewrite the entire Python script to fix the bug. Pay close attention to file paths (FileNotFoundError) and Gradio component arguments (TypeError).
+**Your Mission:**
+Based on the error and the full task context, rewrite the entire Python script to fix the bug. Pay close attention to:
+1. File paths (FileNotFoundError) 
+2. Gradio component arguments (TypeError)
+3. **Event handler placement - they MUST be inside the gr.Blocks() context**
+
+Return ONLY the complete, corrected Python code without any explanations.
 """
 
     prompt_variables = {
@@ -69,6 +77,35 @@ Based on the error and the full task context, rewrite the entire Python script t
 
     return clean_llm_output(fixed_code)
 
+def _create_sandbox_safe_script(script_content: str) -> str:
+    """
+    Convert the script to a sandbox-safe version for validation
+    """
+    # Replace .launch() with validation print
+    sandbox_safe_script = script_content.replace(
+        ".launch()", 
+        "# Sandbox-safe execution\n"
+        "print('✅ Script structure validated without running server')\n"
+        "# .launch()"
+    )
+    
+    # Also handle variations of launch calls
+    sandbox_safe_script = sandbox_safe_script.replace(
+        ".launch(share=True)", 
+        "# Sandbox-safe execution\n"
+        "print('✅ Script structure validated without running server')\n"
+        "# .launch(share=True)"
+    )
+    
+    sandbox_safe_script = sandbox_safe_script.replace(
+        ".launch(server_port=", 
+        "# Sandbox-safe execution\n"
+        "print('✅ Script structure validated without running server')\n"
+        "# .launch(server_port="
+    )
+    
+    return sandbox_safe_script
+
 def run(script_path: str, task_info: dict):
     print("--- Running Step 3: Sandbox Execution & Context-Aware Debugging ---")
     try:
@@ -77,13 +114,8 @@ def run(script_path: str, task_info: dict):
         print(f"❌ Cannot execute script. File not found at: {script_path}")
         return
 
-    # Chạy ứng dụng trong sandbox với chế độ không khởi chạy server
-    sandbox_safe_script = current_script_content.replace(
-        "demo.launch(", 
-        "# Sandbox-safe execution\n"
-        "print('✅ Script structure validated without running server')\n"
-        "# demo.launch("
-    )
+    # Create sandbox-safe version for validation
+    sandbox_safe_script = _create_sandbox_safe_script(current_script_content)
 
     for attempt in range(MAX_DEBUG_ATTEMPTS + 1):
         if attempt > 0:
@@ -100,52 +132,29 @@ def run(script_path: str, task_info: dict):
                 encoding='utf-8', 
                 env={**os.environ, 'PYTHONUTF8': '1'}  
             )
+            
             if "✅ Script structure validated" in process.stdout:
                 print("\n✅ Script structure validated successfully!")
                 
-                # ===== PHẦN MỚI =====
-                # 1. Chạy ứng dụng trong sandbox với verified input
-                print("\n--- Running functional test with verified input ---")
-                demo_process = subprocess.Popen(
-                    [sys.executable, script_path],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True
-                )
+                # Test with verified input if available
+                print("\n--- Testing with verified input ---")
+                try:
+                    _test_with_verified_input(script_path, task_info)
+                except Exception as e:
+                    print(f"⚠️ Warning: Could not test with verified input: {e}")
                 
-                # Đợi ứng dụng khởi động
-                time.sleep(5)
-                
-                # Gửi request với verified input
-                api_url = "http://localhost:8080/api/predict"
-                verified_input = task_info["model_io"].get("verified_input", {})
-                
-                if verified_input:
-                    print(f"Sending test request to: {api_url}")
-                    response = requests.post(
-                        api_url,
-                        json=verified_input,
-                        timeout=20
-                    )
-                    response.raise_for_status()
-                    print(f"✅ API test successful! Response: {response.json()}")
-                else:
-                    print("⚠️ No verified input available for testing")
-                
-                # Tắt sandbox
-                demo_process.terminate()
-                demo_process.wait()
-                
-                # 2. Tự động chạy ứng dụng chính thức
+                # Launch the production application
                 print("\n--- Launching production application ---")
-                subprocess.Popen(
-                    [sys.executable, script_path],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-                print(f"✅ Application is running on http://localhost:8080")
-                print("Press Ctrl+C to stop the application")
-                # ===== KẾT THÚC PHẦN MỚI =====
+                try:
+                    subprocess.Popen(
+                        [sys.executable, script_path],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+                    print(f"✅ Application is running on http://localhost:8080")
+                    print("Press Ctrl+C to stop the application")
+                except Exception as e:
+                    print(f"⚠️ Warning: Could not launch production app: {e}")
                 
                 return
             else:
@@ -163,7 +172,7 @@ def run(script_path: str, task_info: dict):
                     with open(script_path, "w", encoding='utf-8') as f:
                         f.write(fixed_code)
                     current_script_content = fixed_code
-                    sandbox_safe_script = run_without_launch(fixed_code)
+                    sandbox_safe_script = _create_sandbox_safe_script(fixed_code)
                     print(f"✅ Debugger provided a fix. Retrying...")
                 else:
                     print(f"⚠️ Debugger did not provide a new fix. Aborting.")
@@ -178,3 +187,48 @@ def run(script_path: str, task_info: dict):
         except Exception as e:
             print(f"❌ Unexpected error during validation: {e}")
             break
+
+def _test_with_verified_input(script_path: str, task_info: dict):
+    """
+    Test the application with verified input data
+    """
+    verified_input = task_info.get("model_io", {}).get("verified_input")
+    if not verified_input:
+        print("⚠️ No verified input available for testing")
+        return
+    
+    print("Starting temporary server for testing...")
+    
+    # Start the application in a subprocess
+    demo_process = subprocess.Popen(
+        [sys.executable, script_path],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+    
+    try:
+        # Wait for the server to start
+        time.sleep(5)
+        
+        # Test the API endpoint
+        api_url = "http://localhost:8080/api/predict"
+        print(f"Sending test request to: {api_url}")
+        
+        response = requests.post(
+            api_url,
+            json=verified_input,
+            timeout=20
+        )
+        response.raise_for_status()
+        
+        print(f"✅ API test successful! Response: {response.json()}")
+        
+    except Exception as e:
+        print(f"⚠️ API test failed: {e}")
+    
+    finally:
+        # Clean up: terminate the test server
+        demo_process.terminate()
+        demo_process.wait(timeout=5)
+        print("Test server stopped.")

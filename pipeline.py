@@ -1,7 +1,7 @@
 import argparse
 import os
 from utils import helpers
-from components import step1_parse, step1b_verify_io, step2_generate, step3_sandbox
+from components import step1_parse, step1b_verify_io, step1c_generate_api_handler, step2_generate, step2b_combine, step3_sandbox
 from config import DEFAULT_TASK_YAML_PATH
 
 def main():
@@ -39,20 +39,33 @@ def main():
         print("Pipeline failed at Step 1b. Could not verify a working API request. Aborting.")
         return
         
-    # Step 2: Generate Gradio Code with the verified I/O format
-    script_path = step2_generate.run(verified_task_info)
-    if not script_path:
+    # Step 1c: Generate API handler logic
+    task_info_with_handler = step1c_generate_api_handler.run(verified_task_info)
+    if not task_info_with_handler:
+        print("Pipeline failed at Step 1c. Aborting.")
+        return
+    
+    # Step 2: Generate UI layout
+    ui_script_path = step2_generate.run(task_info_with_handler)
+    if not ui_script_path:
         print("Pipeline failed at Step 2. Aborting.")
         return
-        
-    if "verified_input" not in verified_task_info.get("model_io", {}):
+    
+    # Step 2b: Combine UI and API handler
+    full_script_path = step2b_combine.run(
+        ui_script_path, 
+        task_info_with_handler["api_handler_code"],
+        task_info_with_handler
+    )
+    if not full_script_path:
+        print("Pipeline failed at Step 2b. Aborting.")
+        return
+    
+    # Step 3: Sandbox testing
+    if "verified_input" not in task_info_with_handler.get("model_io", {}):
         print("⚠️ Warning: No verified input available for testing")
         
-    step3_sandbox.run(script_path, verified_task_info)
-    
-    # safe_script_path = f'"{script_path}"' if " " in script_path else script_path
-    # print(f"\nTo run the interface, execute:")
-    # print(f"python {safe_script_path}")
+    step3_sandbox.run(full_script_path, task_info_with_handler)
     
     print(f"\n=============================================")
     print(f"PIPELINE FINISHED FOR TASK: {args.yaml_path}")

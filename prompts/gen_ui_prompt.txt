@@ -1,4 +1,4 @@
-Generate a complete, production-ready Python script for a Gradio (5.34.0) interface without comment, explaination and introduction texts.
+Generate a complete, production-ready Python script for a Gradio (3.30.0) interface without comment, explaination and introduction texts.
 
 1. Core Task:
 Type: {task_type}

@@ -3,8 +3,6 @@ import json
 import requests
 import time
 from typing import Optional, Dict
-
-# Giữ lại các import cần thiết cho cả hai phương pháp
 from utils import payload_builder
 from utils.langchain import create_llm_chain
 from config import GENERATOR_MODEL
