@@ -25,7 +25,8 @@ API Integration:
 - Use `st.spinner()` and handle errors with `st.error()` for UX.
 
 Output Visualization:
-- Computer Vision: show original + annotated images side by side
+- ALWAYS import ALL required libraries at the top
+- Computer Vision: show original + annotated images side by side. Attention always: from PIL import Image, ImageDraw, ImageFont, ImageOps
 - NLP: render label/score + highlighted text/entities
 - Audio: display `st.audio`, emotion label, score, emoji
 - Time Series: plot inputs and predictions, use `st.dataframe` for metrics
@@ -44,3 +45,17 @@ Validation Checklist:
 - Use `isinstance()` and `try-except` blocks to handle all user input and API response errors.
 - Always check for missing or malformed fields in API response before displaying.
 - Convert labels to strings and scores to floats before display or use.
+
+Bug Prevention Checklist:
+- Strictly match API payload format: 
+  - For single image: {{"data": base64_string}}
+  - NOT: {{"data": [base64_string]}}
+  - NOT: [{{"data": base64_string}}]
+- Validate uploaded file types and ensure correct content types
+- Check if response data is a list or nested list before using
+- Cast all text-based inputs to string before rendering or processing, e.g., `str(label)`
+- Unwrap lists as needed using conditional checks (e.g., `if isinstance(data[0], list): data = data[0]`)
+- Ensure proper initialization of `st.session_state` variables
+- Always use `st.form()` context properly (`with st.form("form_name"):`)
+- Avoid deprecated Streamlit parameters (e.g., replace `use_column_width` with `use_container_width`)
+- **TEST payload structure before sending: print(payload) or log it**
