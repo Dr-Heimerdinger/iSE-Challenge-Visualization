@@ -1,12 +1,14 @@
 class TaskContext:
     def __init__(self, initial_data=None):
-        self.data = initial_data or {}
-        self.ui_components = []
-        self.api_signature = ""
-        
-    def update(self, key_value_pairs: dict):
-        """Cập nhật nhiều cặp key-value cùng lúc"""
-        self.data.update(key_value_pairs)
+        if isinstance(initial_data, dict):
+            # Tái tạo đối tượng từ dictionary
+            self.data = initial_data.get('data', {})
+            self.ui_components = initial_data.get('ui_components', [])
+            self.api_signature = initial_data.get('api_signature', "")
+        else:
+            self.data = initial_data or {}
+            self.ui_components = []
+            self.api_signature = ""
         
     def set_value(self, key, value):
         """Cập nhật một giá trị đơn lẻ"""
@@ -17,7 +19,7 @@ class TaskContext:
     
     def to_dict(self):
         return {
-            **self.data,
-            "ui_components": self.ui_components,
-            "api_signature": self.api_signature
+            'data': self.data,
+            'ui_components': self.ui_components,
+            'api_signature': self.api_signature
         }

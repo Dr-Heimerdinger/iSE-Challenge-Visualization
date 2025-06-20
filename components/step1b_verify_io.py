@@ -88,18 +88,12 @@ def run(task_info: dict) -> Optional[dict]:
             api_url, input_format_desc, max_retries=2
         )
         
+        # CẬP NHẬT TASK_INFO NHƯNG GIỮ NGUYÊN SHARED_CONTEXT
         task_info["model_io"]["verified_input"] = verified_input
         task_info["model_io"]["verified_output"] = verified_output
 
-        task_info["shared_context"] = {
-        "input_format": task_info["model_io"]["input_format"],
-        "output_format": task_info["model_io"]["output_format"],
-    }
-
         print("✅ Model I/O verification successful.")
         print(f"Verified input: {json.dumps(verified_input, indent=2)}")
-
-        print("✅ Model I/O verification successful.")
         return task_info
 
     except Exception as e:

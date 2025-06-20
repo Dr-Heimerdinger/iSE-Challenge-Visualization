@@ -34,7 +34,7 @@ def run(yaml_path: str) -> dict | None:
             "dataset_description": config.get("dataset_description", {}),
             "data_path": absolute_data_path,
             "auxiliary_file_paths": auxiliary_file_paths,
-            "shared_context": TaskContext(),
+            "shared_context": TaskContext()  # KHỞI TẠO LÀ ĐỐI TƯỢNG
         }
         print(f"✅ YAML parsed successfully. Derived task name: '{task_name}'")
         if auxiliary_file_paths:
