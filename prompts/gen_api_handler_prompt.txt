@@ -8,11 +8,22 @@ Input:
 - Verified Output Example: {verified_output}
 - Post-processing Steps: {post_processing}
 
+Integration Context:
+- Task Name: {context['task_name']}
+- API URL: {context['api_url']}
+- Input Format: {json.dumps(context['input_format'], indent=2)}
+- UI Components: {json.dumps(context['ui_components'], indent=2)}
+
 Requirements:
-1. Analyze the Input Function Information in UI and the Detailed description for the type of input elements to create a function named `call_model_api(input_data)`
-For example: The input fields accept uploading a list of images and the description tells that the image is encoded in base64 format, so the function has to convert to base64 before sending the request. 
-4. Use requests.post() with timeout=30
-5. Implement error handling for network issues
-6. Apply the specified post-processing to the API response
-7. Return the processed result
-8. Include necessary imports
+1. Ensure the function parameters match the UI components
+2. Handle all necessary data conversions (e.g., images to base64)
+3. Use requests.post() with timeout=30
+4. Implement comprehensive error handling
+5. Apply post-processing to the API response
+6. Return processed results matching UI output components
+7. Include all required imports
+
+Important Considerations:
+- The UI has these components: {json.dumps(context['ui_components'], indent=2)}
+- Pay special attention to: {context['input_format'].get('special_notes', '')}
+- Always use absolute paths for files: {json.dumps(context.get('auxiliary_files', {}), indent=2)}

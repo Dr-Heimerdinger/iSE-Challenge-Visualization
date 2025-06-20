@@ -20,6 +20,15 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GENERATOR_MODEL = os.getenv("MODEL")
 DEBUGGER_MODEL = os.getenv("MODEL")
 
+SHARED_CONTEXT = {
+    "task_name": "",
+    "api_url": "",
+    "input_format": {},
+    "output_format": {},
+    "auxiliary_files": {},
+    "gradio_version": "3.30.0"
+}
+
 # --- EXECUTION ---
 # Max attempts for the debugging loop
 MAX_DEBUG_ATTEMPTS = 3

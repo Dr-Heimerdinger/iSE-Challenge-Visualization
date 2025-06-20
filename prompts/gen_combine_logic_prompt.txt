@@ -13,9 +13,8 @@ You are an expert Python and Gradio developer. Your task is to intelligently com
 4.  **Wire up the Event Listener:** Connect the action component to the new event handler function using an event listener (e.g., `submit_btn.click(fn=process_inputs, inputs=[...], outputs=[...])`).
 5.  **Final Assembly:** Combine everything into one script. Ensure all necessary imports (`gradio`, `requests`, `json`, `numpy`, `base64`, `os`, etc.) are present at the top. The final script should include the API handler, the event handler, the UI creation block, and the `if __name__ == "__main__":` block to launch the app.
 
-Provided Code and Context:
-
-1. Task Context: {task_info}
-2. UI Code (Layout Only): {ui_code}
-3. API Handler Code (Logic Only): {api_handler_code}
-Now, generate the complete, final Python script without any comment as well as explaination.
+INTEGRATION CONTEXT:
+1. UI Components: {context[ui_components]}
+2. API Handler Signature: {context[api_handler_signature]}
+3. Verified Input Structure: {context[verified_input]}
+4. Critical Paths: {context[auxiliary_files]}

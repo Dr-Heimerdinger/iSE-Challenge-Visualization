@@ -2,6 +2,7 @@ import os
 import yaml
 import glob
 from utils.helpers import read_file
+from utils.context import TaskContext
 
 def run(yaml_path: str) -> dict | None:
     print("--- Running Step 1: Parse Task Configuration ---")
@@ -33,6 +34,7 @@ def run(yaml_path: str) -> dict | None:
             "dataset_description": config.get("dataset_description", {}),
             "data_path": absolute_data_path,
             "auxiliary_file_paths": auxiliary_file_paths,
+            "shared_context": TaskContext(),
         }
         print(f"✅ YAML parsed successfully. Derived task name: '{task_name}'")
         if auxiliary_file_paths:

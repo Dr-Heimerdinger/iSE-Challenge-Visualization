@@ -1,36 +1,53 @@
-Generate a complete, production-ready Python script for a Gradio (3.30.0) interface without comment, explaination and introduction texts.
+Generate a complete, production-ready Python script for a Gradio (3.30.0) interface without comment, explanation or introduction texts.
 
 1. Core Task:
 Type: {task_type}
-Description:{task_description}
+Description:
+{task_description}
 
-Port: The final app must run on localhost: {port}.
+2. Port: The final app must run on localhost: {port}.
+
 3. Visualization & Functionality:
 Required Features: This section describes the components and behavior of the UI.
 {visualize_features}
+
 4. API & Model Details:
 API URL: {api_url}
-Verified Input Example (for request structure): {verified_input}
-Verified Output Example (raw from API):{verified_output}
+Verified Input Example (for request structure): 
+{verified_input}
+Verified Output Example (raw from API):
+{verified_output}
 {post_processing_section}
-{guidance_section}
+
 5. Example Data Context:
 Source Path for Examples: {data_path}
-Data Description: This section describes the actual data format and source. The UI's examples and data loading logic should be based on this.
+Data Description: 
 {dataset_description}
-6.CRITICAL SYNTAX RULE: Never repeat a keyword argument in a function call. For example, gr.Image(type='pil', type='pil') is a SyntaxError and is strictly forbidden. Check your generated code for repeated keywords before finalizing.
-DATA HANDLING: Always check if a list of files or data is None or empty before starting a loop to avoid errors.
-GRADIO COMPONENTS: Make sure the gr.Dataframe component has the correct number of headers matching the data you return. For image columns, use datatype=['image', 'str', ...].
-API CALLS: Always include a timeout (e.g., timeout=20) in requests.post() calls. Include comprehensive try...except blocks to handle requests.RequestException and other potential errors gracefully.
-SELF-CONTAINED: The entire script must be in a single file, with no external function calls unless the functions are defined within the script itself.
+
+6. CRITICAL SYNTAX RULES:
+- Never repeat a keyword argument in a function call
+- Always check for None/empty before processing lists
+- Ensure gr.Dataframe headers match returned data
+- Use datatype=['image', 'str', ...] for image columns
+- Include timeout=20 in all requests.post() calls
+- Implement comprehensive error handling
+- Script must be entirely self-contained
+
 7. Critical File Paths:
-This section provides the ABSOLUTE paths to necessary auxiliary files like mappings or data files.
-You MUST use these exact absolute paths when opening files in the generated code.
+You MUST use these exact absolute paths when accessing files:
 {auxiliary_file_paths}
+
 8. GRADIO VERSION COMPATIBILITY (CRITICAL):
 {gradio_warnings}
+
+9. Integration Context (For Reference):
+The following context is provided to help you understand the overall task and API requirements:
+{context}
+
 Final Instructions:
-The script must be self-contained in a single file.
-It must be robust and include error handling for API calls.
-Add comments to explain key parts of the code, especially the API interaction and data processing logic as described in 'API & Model Details'.
-Ensure the Gradio components chosen are appropriate for the data types described in the 'Verified Input Example' and 'Example Data Context'.
+- Create a function named `create_ui()` that returns a gr.Blocks object
+- The function must contain all UI component definitions
+- Do NOT include any event handlers or processing logic
+- Ensure proper imports (import gradio as gr)
+- Components must match the data types described
+- Use absolute paths from Critical File Paths section

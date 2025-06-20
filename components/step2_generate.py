@@ -1,78 +1,117 @@
 import os
 import json
 import re
-from utils.helpers import read_file, clean_llm_output  # [cite: 4]
-from utils.langchain import create_llm_chain          # [cite: 4]
-from config import GENERATED_CODE_DIR, PROMPTS_DIR, GENERATOR_MODEL  # [cite: 4]
+from utils.helpers import read_file, clean_llm_output
+from utils.langchain import create_llm_chain
+from utils.component_parser import extract_ui_components
+from utils.context import TaskContext
+from config import GENERATED_CODE_DIR, PROMPTS_DIR, GENERATOR_MODEL
 
 def run(task_info: dict) -> str | None:
     """
-    Step 2: Generate Gradio UI code based solely on the task description.
+    Step 2: Generate Gradio UI code based on task description and context
     """
-    print("--- Running Step 2: Generate Gradio UI 3.30.0 Code (Based on Description Only) ---")
+    print("--- Running Step 2: Generate Gradio UI 3.30.0 Code ---")
 
     if not task_info:
         print("❌ Error: Invalid task_info provided to Step 2")
         return None
 
-    # Read the shared system prompt
-    system_prompt_path = os.path.join(PROMPTS_DIR, "system_prompt.txt")  # [cite: 4]
+    # Get shared context or create new
+    context = task_info.get("shared_context", TaskContext())
+    
+    # Read system prompt
+    system_prompt_path = os.path.join(PROMPTS_DIR, "system_prompt.txt")
     try:
-        system_prompt = read_file(system_prompt_path)  # [cite: 4]
+        system_prompt = read_file(system_prompt_path)
     except Exception as e:
         print(f"❌ Error reading system prompt: {e}")
         return None
 
-    # Prompt template focused exclusively on task description
-    user_prompt_template = """
-Generate ONLY the Gradio UI 3.30.0 layout and component definitions based on the following task description.
+    # Read UI generation prompt template
+    ui_prompt_path = os.path.join(PROMPTS_DIR, "gen_ui_prompt.txt")
+    try:
+        user_prompt_template = read_file(ui_prompt_path)
+    except Exception as e:
+        print(f"❌ Error reading UI generation prompt: {e}")
+        return None
 
-**Task Description (JSON Format):**
-{task_description_json}
+    # Prepare prompt variables
+    task_description_full = task_info.get("task_description", {})
+    task_type = task_description_full.get("type", "unknown")
+    visualize = task_description_full.get("visualize", {})
+    features = visualize.get("features", [])
+    visualize_features = "\n".join([json.dumps(f, indent=2, ensure_ascii=False) for f in features])
+    
+    # Prepare auxiliary file paths
+    auxiliary_file_paths = task_info.get("auxiliary_file_paths", {})
+    auxiliary_paths_str = "\n".join([f"{k}: {v}" for k, v in auxiliary_file_paths.items()])
+    
+    # Prepare post-processing section
+    post_processing = task_info.get("model_io", {}).get("output_format", {}).get("post_processing", {})
+    post_processing_section = f"Post-processing Steps:\n{json.dumps(post_processing, indent=2)}" if post_processing else ""
+    
+    # Prepare dataset description
+    dataset_description = task_info.get("dataset_description", {})
+    dataset_desc_str = json.dumps(dataset_description, indent=2, ensure_ascii=False)
+    
+    # Prepare verified input/output
+    verified_input = task_info.get("model_io", {}).get("verified_input", {})
+    verified_output = task_info.get("model_io", {}).get("verified_output", {})
+    
+    # Prepare port
+    port = task_info.get("model_information", {}).get("port", 8080)
+    
+    # Prepare gradio warnings
+    gradio_warnings = """- DEPRECATION: 'file_types_allow_multiple' → Use 'file_count="multiple"'
+- Never repeat a keyword argument (e.g., `type='filepath', type='numpy'` is invalid)
+- Always use absolute paths for file components"""
 
-**Important Rules:**
-- From the description, infer the necessary input components (e.g., `gr.Image` for an image, `gr.Textbox` for text) and output components (e.g., `gr.Label`, `gr.Dataframe`).
-- Your generated code should ONLY contain the UI component definitions inside a `gr.Blocks()` context.
-- DO NOT include any event handlers (like `.click()`) or data processing logic.
-- The main function must be named `create_ui()`.
-- The function must return the final Blocks object.
-- Make sure to import the `gradio` library as `gr`.
-"""
+    # Format user prompt
+    prompt_variables = {
+        "task_type": task_type,
+        "task_description": json.dumps(task_description_full, indent=2, ensure_ascii=False),
+        "port": port,
+        "visualize_features": visualize_features,
+        "api_url": task_info.get("model_information", {}).get("api_url", ""),
+        "verified_input": json.dumps(verified_input, indent=2, ensure_ascii=False),
+        "verified_output": json.dumps(verified_output, indent=2, ensure_ascii=False),
+        "post_processing_section": post_processing_section,
+        "data_path": task_info.get("data_path", ""),
+        "dataset_description": dataset_desc_str,
+        "auxiliary_file_paths": auxiliary_paths_str,
+        "gradio_warnings": gradio_warnings,
+        "context": json.dumps(context.to_dict(), indent=2)  # Include context
+    }
+    
+    user_prompt = user_prompt_template.format(**prompt_variables)
 
     # Create LLM processing chain
-    chain = create_llm_chain(system_prompt, model=GENERATOR_MODEL, temperature=0.2)  # [cite: 4]
+    chain = create_llm_chain(system_prompt, model=GENERATOR_MODEL, temperature=0.2)
 
     try:
-        # Use only the 'task_description' part from task_info
-        task_description_full = task_info.get("task_description", {})
+        print("--- Sending UI Generation Prompt to LLM ---")
+        generated_code = chain.invoke({"user_prompt": user_prompt})
+        cleaned_code = clean_llm_output(generated_code)
 
-        # Convert the task description dictionary into a JSON-formatted string
-        task_description_json = json.dumps(task_description_full, indent=2, ensure_ascii=False)
+        # Generate safe filename
+        task_name = task_info.get('task_name', 'unknown_task')
+        safe_task_name = re.sub(r'\s+', '_', task_name)
+        script_path = os.path.join(GENERATED_CODE_DIR, f"{safe_task_name}_ui.py")
 
-        # Prepare variables for the simplified prompt
-        prompt_variables = {
-            "task_description_json": task_description_json
-        }
-
-        user_prompt = user_prompt_template.format(**prompt_variables)
-
-        print("--- Sending Simplified UI Generation Prompt to LLM ---")
-        generated_code = chain.invoke({"user_prompt": user_prompt})  # [cite: 4]
-        cleaned_code = clean_llm_output(generated_code)  # [cite: 4]
-
-        # Generate a safe filename from the task name
-        task_name = task_info.get('task_name', 'unknown_task')  # [cite: 4]
-        safe_task_name = re.sub(r'\s+', '_', task_name)  # [cite: 4]
-        script_path = os.path.join(GENERATED_CODE_DIR, f"{safe_task_name}_ui.py")  # [cite: 4]
-
-        # Save the generated UI code to a file
+        # Save UI code
         with open(script_path, "w", encoding="utf-8") as f:
             f.write(cleaned_code)
+
+        # Extract UI components and update context
+        context = task_info.get("shared_context", TaskContext())
+        context.ui_components = extract_ui_components(cleaned_code)
+        task_info["shared_context"] = context
 
         print(f"✅ UI layout code generated and saved to {script_path}")
         return script_path
     except KeyError as e:
-        print(f"❌ Missing 'task_description' key in task_info: {e}")
+        print(f"❌ Missing key in task_info: {e}")
         return None
     except Exception as e:
         print(f"❌ Error during UI code generation: {e}")
