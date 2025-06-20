@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import traceback
 from utils.helpers import read_file, clean_llm_output
 from utils.langchain import create_llm_chain
 from utils.context import TaskContext
@@ -9,40 +10,33 @@ from config import PROMPTS_DIR, GENERATOR_MODEL
 def run(task_info: dict) -> dict | None:
     print("--- Running Step 1c: Generate API Handler & Post-processing Logic ---")
     
-    # KHỞI TẠO CONTEXT - XỬ LÝ MỌI TRƯỜNG HỢP
-    context = None
-    
-    # Xử lý các trường hợp context khác nhau
-    if "shared_context" in task_info:
-        if isinstance(task_info["shared_context"], TaskContext):
-            context = task_info["shared_context"]
-        elif isinstance(task_info["shared_context"], dict):
-            context = TaskContext(task_info["shared_context"])
-    else:
+    try:
+        # KHỞI TẠO CONTEXT - XỬ LÝ MỌI TRƯỜNG HỢP
         context = TaskContext()
-    
-    # Cập nhật giá trị - XỬ LÝ AN TOÀN KHI DỮ LIỆU KHÔNG TỒN TẠI
-    context.set_value("task_name", task_info.get("task_name", "Unknown Task"))
-    context.set_value("api_url", task_info.get("model_information", {}).get("api_url", ""))
-    
-    # Xử lý model_io an toàn
-    model_io = task_info.get("model_io", {})
-    context.set_value("input_format", model_io.get("input_format", {}))
-    context.set_value("output_format", model_io.get("output_format", {}))
-    
-    # Đọc prompt template
-    prompt_path = os.path.join(PROMPTS_DIR, "gen_api_handler_prompt.txt")
-    try:
+        if "shared_context" in task_info:
+            if isinstance(task_info["shared_context"], dict):
+                # Tái tạo đối tượng từ dictionary
+                context = TaskContext(task_info["shared_context"])
+            elif isinstance(task_info["shared_context"], TaskContext):
+                context = task_info["shared_context"]
+        
+        # Cập nhật giá trị - XỬ LÝ AN TOÀN KHI DỮ LIỆU KHÔNG TỒN TẠI
+        context.set_value("task_name", task_info.get("task_name", "Unknown Task"))
+        context.set_value("api_url", task_info.get("model_information", {}).get("api_url", ""))
+        
+        # Xử lý model_io an toàn
+        model_io = task_info.get("model_io", {})
+        context.set_value("input_format", model_io.get("input_format", {}))
+        context.set_value("output_format", model_io.get("output_format", {}))
+        
+        # Đọc prompt template
+        prompt_path = os.path.join(PROMPTS_DIR, "gen_api_handler_prompt.txt")
         user_prompt_template = read_file(prompt_path)
-    except Exception as e:
-        print(f"❌ Error reading API handler prompt: {e}")
-        return None
-    
-    # Tạo LLM chain
-    system_prompt = "You are an expert Python developer. Generate ONLY the API handling function and post-processing logic based on the specification."
-    chain = create_llm_chain(system_prompt, model=GENERATOR_MODEL, temperature=0.1)
-    
-    try:
+        
+        # Tạo LLM chain
+        system_prompt = "You are an expert Python developer. Generate ONLY the API handling function and post-processing logic based on the specification."
+        chain = create_llm_chain(system_prompt, model=GENERATOR_MODEL, temperature=0.1)
+        
         # XỬ LÝ AN TOÀN TẤT CẢ CÁC TRƯỜNG DỮ LIỆU
         task_description = task_info.get("task_description", {})
         visualize = task_description.get("visualize", {}) if isinstance(task_description, dict) else {}
@@ -50,11 +44,12 @@ def run(task_info: dict) -> dict | None:
         
         # Xử lý input_function an toàn
         input_function = ""
-        if features and isinstance(features, list):
-            if len(features) > 1 and isinstance(features[1], dict):
-                input_function = features[1].get("input_function", "")
-            elif features and isinstance(features[0], dict):
-                input_function = features[0].get("input_function", "")
+        if isinstance(features, list) and features:
+            # Tìm feature có input_function đầu tiên
+            for feature in features:
+                if isinstance(feature, dict) and feature.get("input_function"):
+                    input_function = feature["input_function"]
+                    break
         
         # Xử lý description an toàn
         description = ""
@@ -80,16 +75,31 @@ def run(task_info: dict) -> dict | None:
             "verified_input": json.dumps(
                 model_io.get("verified_input", {}), 
                 indent=2
-            ) if isinstance(model_io.get("verified_input"), dict) else "{}",
+            ) if isinstance(model_io.get("verified_input"), (dict, list)) else "{}",
             "verified_output": json.dumps(
                 model_io.get("verified_output", {}), 
                 indent=2
-            ) if isinstance(model_io.get("verified_output"), dict) else "{}",
+            ) if isinstance(model_io.get("verified_output"), (dict, list)) else "{}",
             "post_processing": json.dumps(post_processing, indent=2),
             "context": json.dumps(context.to_dict(), indent=2)
         }
         
-        user_prompt = user_prompt_template.format(**prompt_variables)
+        # ĐẢM BẢO TẤT CẢ GIÁ TRỊ ĐỀU LÀ CHUỖI
+        for key in prompt_variables:
+            if not isinstance(prompt_variables[key], str):
+                prompt_variables[key] = str(prompt_variables[key])
+        
+        # Format user prompt an toàn
+        try:
+            user_prompt = user_prompt_template.format(**prompt_variables)
+        except Exception as e:
+            print(f"❌ Error formatting prompt: {e}")
+            # Thử format thủ công nếu có lỗi
+            user_prompt = user_prompt_template
+            for key, value in prompt_variables.items():
+                placeholder = "{" + key + "}"
+                user_prompt = user_prompt.replace(placeholder, value)
+        
         generated_code = chain.invoke({"user_prompt": user_prompt})
         cleaned_code = clean_llm_output(generated_code)
         
@@ -105,11 +115,7 @@ def run(task_info: dict) -> dict | None:
         print("✅ API handler code generated.")
         return task_info
         
-    except KeyError as e:
-        print(f"❌ Missing key while preparing prompt variables: {e}")
-        return None
     except Exception as e:
         print(f"❌ Error generating API handler: {e}")
-        import traceback
-        traceback.print_exc()  # In stack trace để debug chi tiết
+        traceback.print_exc()
         return None

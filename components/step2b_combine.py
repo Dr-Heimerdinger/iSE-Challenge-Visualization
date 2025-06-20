@@ -36,9 +36,19 @@ def run(ui_script_path: str, api_handler_code: str, task_info: dict) -> str | No
             "ui_code": ui_code,
             "api_handler_code": api_handler_code
         }
+
+        try:
+            user_prompt = integration_prompt_template.format(**prompt_variables)
+        except Exception as e:
+            print(f"❌ Error formatting prompt: {e}")
+            # Thử format thủ công nếu có lỗi
+            user_prompt = integration_prompt_template
+            for key, value in prompt_variables.items():
+                placeholder = "{" + key + "}"
+                user_prompt = user_prompt.replace(placeholder, value)
         
         # Tạo user_prompt hoàn chỉnh
-        user_prompt = integration_prompt_template.format(**prompt_variables)
+        # user_prompt = integration_prompt_template.format(**prompt_variables)
         
         print(">>> Sending UI and API code to LLM for integration...")
         # Gọi LLM để thực hiện việc tích hợp
