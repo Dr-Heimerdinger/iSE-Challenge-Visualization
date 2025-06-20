@@ -11,7 +11,7 @@ def run(task_info: dict) -> str | None:
     """
     Step 2: Generate Gradio UI code based on task description and context
     """
-    print("--- Running Step 2: Generate Gradio UI 3.30.0 Code ---")
+    print("--- Running Step 2: Generate Gradio UI 3.50.2 Code ---")
 
     if not task_info:
         print("❌ Error: Invalid task_info provided to Step 2")

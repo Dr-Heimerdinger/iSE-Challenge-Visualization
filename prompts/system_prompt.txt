@@ -12,7 +12,7 @@
 </strict_rules>
 
 <gradio_specific>
-VERSION: 3.30.0
+VERSION: 3.50.2
 DEPRECATIONS:
   - 'file_types_allow_multiple' → Use 'file_count="multiple"'
   - 'type' parameter duplication → Syntax error

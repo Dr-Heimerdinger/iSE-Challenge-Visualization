@@ -41,7 +41,7 @@ Critical Auxiliary File Paths (You MUST use these absolute paths):
 {auxiliary_file_paths}
 
 **4. GRADIO VERSION CONTEXT:**
-We are using Gradio 3.30.0. Remember these critical changes:
+We are using Gradio 3.50.2. Remember these critical changes:
 - file_types_allow_multiple is DEPRECATED → Use file_count='multiple'
 - Never repeat keyword arguments in components
 - Always use absolute paths from auxiliary_file_paths

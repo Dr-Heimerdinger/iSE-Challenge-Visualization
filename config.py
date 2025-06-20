@@ -26,7 +26,7 @@ SHARED_CONTEXT = {
     "input_format": {},
     "output_format": {},
     "auxiliary_files": {},
-    "gradio_version": "3.30.0"
+    "gradio_version": "3.50.2"
 }
 
 # --- EXECUTION ---
