@@ -45,8 +45,14 @@ def main():
         print("Pipeline failed at Step 2. Aborting.")
         return
         
-    # Step 3: Sandbox Execution & Debugging
-    step3_sandbox.run(script_path)
+    if "verified_input" not in verified_task_info.get("model_io", {}):
+        print("⚠️ Warning: No verified input available for testing")
+        
+    step3_sandbox.run(script_path, verified_task_info)
+    
+    # safe_script_path = f'"{script_path}"' if " " in script_path else script_path
+    # print(f"\nTo run the interface, execute:")
+    # print(f"python {safe_script_path}")
     
     print(f"\n=============================================")
     print(f"PIPELINE FINISHED FOR TASK: {args.yaml_path}")

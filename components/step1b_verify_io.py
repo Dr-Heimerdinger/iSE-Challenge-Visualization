@@ -1,101 +1,104 @@
 import os
 import json
 import requests
+import time
+from typing import Optional, Dict
+
+# Giữ lại các import cần thiết cho cả hai phương pháp
+from utils import payload_builder
 from utils.langchain import create_llm_chain
 from config import GENERATOR_MODEL
 
-def _make_api_request_with_retry(api_url: str, input_format_desc: str, max_retries: int = 2) -> tuple[dict, dict, list]:
+def _get_payload_from_llm(input_format_desc: str, attempt_history: list = []) -> Dict:
+    print(">>> Builder failed or was skipped. Falling back to LLM to generate payload...")
+    prompt_system = """You are an API testing assistant. Your task is to generate VALID JSON payloads for API requests based on the exact input format specification."""
+    user_prompt = f"You need to create a test JSON payload based on this input format:\n\n{input_format_desc}"
 
-    attempt_history = []
+    if attempt_history:
+        user_prompt += "\n\nThe previous attempt with a generated payload failed. Analyze the error and create a new, corrected payload."
+
+    chain = create_llm_chain(prompt_system, model=GENERATOR_MODEL, temperature=0.1)
+    payload_str = chain.invoke({"user_prompt": user_prompt})
+    return json.loads(payload_str)
+
+
+def _make_api_request_with_retry(api_url: str, input_format_desc: dict, max_retries: int = 2) -> tuple[dict, dict]:
+    """
+    Sử dụng phương pháp kết hợp: thử builder trước, nếu thất bại thì dùng LLM.
+    Sau đó gửi yêu cầu API với logic retry.
+    """
+    payload = {}
     
-    for attempt in range(max_retries + 1): 
-        print(f">>> Attempt {attempt + 1}/{max_retries + 1}: Generating test request...")
-        
+    try:
+        # Ưu tiên 1: Thử dùng payload builder (nhanh, rẻ, đáng tin cậy)
+        print(">>> Attempting to build payload with deterministic builder...")
+        payload = payload_builder.build_payload_from_schema(input_format_desc)
+        print("✅ Payload built successfully using the builder.")
+    except Exception as e:
+        print(f"⚠️ Builder failed: {e}.")
+        # Phương án 2: Nếu builder thất bại, chuyển sang dùng LLM
+        payload = _get_payload_from_llm(json.dumps(input_format_desc, indent=2))
+        print("✅ Payload generated using LLM fallback.")
+
+    print("Final payload to be sent:")
+    print(json.dumps(payload, indent=2))
+
+    # Vòng lặp retry giờ đây tập trung vào lỗi mạng hoặc lỗi từ server
+    for attempt in range(max_retries + 1):
         try:
-            # Tạo prompt cơ bản
-            prompt_system = "You are a helpful assistant. Given a description of a model's input format, generate a valid JSON payload string with plausible placeholder data. Only output the raw JSON string."
-            
-            user_prompt = f"Based on this input format description, create a test JSON payload:\n\n{input_format_desc}"
-            
-            # Thêm thông tin từ các lần thử trước nếu có
-            if attempt_history:
-                user_prompt += "\n\nPrevious attempts that failed:"
-                for i, hist in enumerate(attempt_history):
-                    user_prompt += f"\n\nAttempt {i+1}:"
-                    user_prompt += f"\nInput sent: {json.dumps(hist['input'], indent=2)}"
-                    user_prompt += f"\nError received: {hist['error']}"
-                    if hist.get('response_text'):
-                        user_prompt += f"\nAPI Response: {hist['response_text']}"
-                user_prompt += "\n\nBased on the errors and responses above, please generate a different payload that addresses these issues."
-            
-            chain = create_llm_chain(prompt_system, model=GENERATOR_MODEL, temperature=0.1)
-            payload_str = chain.invoke({"user_prompt": user_prompt})
-            payload = json.loads(payload_str)
-            
-            print(f'Attempt {attempt + 1} payload:', payload)
-            
-            # Thực hiện API request
+            print(f">>> Attempt {attempt + 1}/{max_retries + 1}: Sending API request...")
             response = requests.post(api_url, json=payload, timeout=30)
             response.raise_for_status()
-            
             response_json = response.json()
-            print(f"✅ Attempt {attempt + 1} was successful!")
-            print('Response:', response_json)
-            
-            return payload, response_json, attempt_history
-            
+
+            if 'error' in response_json and response_json['error']:
+                raise ValueError(f"API returned success status but contained an error: {response_json['error']}")
+
+            print("✅ API request and response verification successful!")
+            return payload, response_json
+
         except Exception as e:
-            print(f"⚠️ Attempt {attempt + 1} failed: {e}")
-            
-            # Thu thập thông tin về lần thử này
-            attempt_info = {
-                'attempt': attempt + 1,
-                'input': payload if 'payload' in locals() else None,
-                'error': str(e)
-            }
-            
-            # Thu thập response text từ API (quan trọng cho việc retry)
-            try:
-                if 'response' in locals() and hasattr(response, 'text'):
-                    attempt_info['response_text'] = response.text
-                elif 'response' in locals() and hasattr(response, 'content'):
-                    attempt_info['response_text'] = response.content.decode('utf-8', errors='ignore')
-            except:
-                attempt_info['response_text'] = "Could not retrieve response text"
-                
-            attempt_history.append(attempt_info)
-            
-            # Nếu đã hết số lần thử, raise exception
+            print(f"⚠️ API call attempt {attempt + 1} failed: {e}")
             if attempt >= max_retries:
-                raise Exception(f"All {max_retries + 1} attempts failed. Last error: {e}")
-    
-    return None, None, attempt_history
+                print("❌ All API call attempts failed.")
+                raise e
+            
+            if "Builder failed" in locals().get("e", ""): 
+                 print(">>> Retrying with LLM, providing error context...")
+                 payload = _get_payload_from_llm(
+                     json.dumps(input_format_desc, indent=2),
+                     attempt_history=[{'error': str(e)}]
+                 )
 
-def run(task_info: dict) -> dict | None:
+            delay_seconds = 5 * (2 ** attempt)
+            print(f"⏳ Waiting {delay_seconds} seconds before next retry...")
+            time.sleep(delay_seconds)
+
+    raise ConnectionError("Could not get a valid response from the API after all retries.")
+
+
+def run(task_info: dict) -> Optional[dict]:
     """
-    Verifies the model's I/O by making a live API request.
+    Verifies the model's I/O using the hybrid (Builder + LLM) approach.
     """
-    print("--- Running Step 1b: Verify Model I/O via Live API Call ---")
+    print("--- Running Step 1b: Verify Model I/O via Live API Call (Hybrid Approach) ---")
     api_url = task_info["model_information"].get("api_url")
-    input_format_desc = json.dumps(task_info["model_io"]["input_format"], indent=2)
+    input_format_desc = task_info["model_io"]["input_format"]
 
-    # --- Primary Attempt with Retry (không dùng sample data) ---
-    print(">>> Attempting to generate and send a test request with retry logic...")
     try:
-        verified_input, verified_output, primary_history = _make_api_request_with_retry(
+        verified_input, verified_output = _make_api_request_with_retry(
             api_url, input_format_desc, max_retries=2
         )
         
         task_info["model_io"]["verified_input"] = verified_input
         task_info["model_io"]["verified_output"] = verified_output
-        task_info["model_io"]["attempt_history"] = primary_history
+
+        print("✅ Model I/O verification successful.")
+        print(f"Verified input: {json.dumps(verified_input, indent=2)}")
+
+        print("✅ Model I/O verification successful.")
         return task_info
 
     except Exception as e:
-        print(f"❌ All attempts failed: {e}")
-        
-        # Lưu lại history ngay cả khi thất bại
-        if 'primary_history' in locals():
-            task_info["model_io"]["failed_attempt_history"] = primary_history
-        
+        print(f"\n❌ Pipeline failed at Step 1b. Could not verify a working API request. Error: {e}")
         return None
