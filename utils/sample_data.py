@@ -52,6 +52,6 @@ SAMPLE_TABULAR_PAYLOAD = {
 # Dữ liệu cho tác vụ 'audio_classification'.
 
 SAMPLE_AUDIO_PAYLOAD = {
-    "audio_data": [random.uniform(-1.0, 1.0) for _ in range(150000)],
+    "audio_data": [random.uniform(-1.0, 1.0) for _ in range(1500)],
     "sampling_rate": 48000
 }

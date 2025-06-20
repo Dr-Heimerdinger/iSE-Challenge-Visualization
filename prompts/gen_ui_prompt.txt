@@ -1,53 +1,73 @@
-Generate a complete, production-ready Python script for a Streamlit interface without comment, explanation or introduction texts.
+Generate a complete, production-ready Python script for a Streamlit 1.46.0 interface without comments, explanations, or introduction texts.
 
 1. Core Task:
 Type: {task_type}
 Description:
 {task_description}
 
-2. Visualization & Functionality:
-Required Features: This section describes the components and behavior of the UI.
-{visualize_features}
+2. UI Structure and Features:
+- The UI must follow modern Streamlit layout best practices.
+- Required Components:
+  {visualize_features}
+- Use appropriate widgets for the data type:
+  • Computer Vision: file_uploader for images/videos, st.image for preview
+  • NLP: text_area for text input, st.markdown for formatted output
+  • Time Series: file_uploader for CSV/data files, st.line_chart/st.area_chart
+- Use columns (`st.columns`) and forms (`st.form`) where appropriate to organize inputs.
+- If type is video, user should hear the sound.
 
-3. Logic code of function to call API
-You must to use this code:
-{api_handler_code}
+3. API Call Logic:
+- You MUST use the following function for API interaction:
+  {api_handler_code}
+- Validate and preprocess data before passing to this function.
+- **CRITICAL: The payload must be a JSON object with EXACTLY the structure the API expects.**
+- For different ML tasks:
+  • Computer Vision: Convert images to base64, ensure proper encoding
+  • NLP: Tokenize/clean text as required
+  • Time Series: Format time series data into arrays/dicts as API expects
+- Always send ONE data item per API request
+- Process multiple items by making sequential API calls
+- Always wrap API calls in `st.spinner()` and handle exceptions with `st.error()`
 
-4. Example Data Context:
-Source Path for Examples: {data_path}
-Data Description: 
-{dataset_description}
+4. Visualization Requirements:
+- For Computer Vision tasks:
+  • ALWAYS import ALL necessary modules: `from PIL import Image, ImageDraw`
+  • Implement drawing functions for bounding boxes, segmentation masks, etc.
+  • Display original and processed images side-by-side using `st.columns()`
+- For NLP tasks:
+  • Highlight key entities/results in text
+  • Use `st.dataframe` for tabular results
+- For Time Series:
+  • Plot original data and predictions using `st.line_chart()` or `st.altair_chart()` 
+  • Display metrics in clear tables
 
-5. CRITICAL SYNTAX RULES:
-- Use `st.title()` for main headers
-- Use `st.form()` for input sections
-- Use `st.file_uploader()` for file uploads
-- Use `st.columns()` for multi-column layouts
-- Use `st.spinner()` during API calls
-- Use session_state for state management
-- Implement comprehensive error handling with `st.error()`
-- Script must be entirely self-contained
-- Always use absolute paths from Critical File Paths section
-- Handle image previews with `st.image()`
-- Use `st.dataframe()` for tabular data
-- Cache expensive operations with `@st.cache_data`
+5. Critical Syntax and Functional Requirements:
+- The script must be self-contained and start with `import streamlit as st`
+- **ALWAYS import ALL required libraries at the top**
+  • Computer Vision: `from PIL import Image, ImageDraw`
+  • General: `import requests, base64, json, io`
+  • Time Series: `import pandas as pd, numpy as np`
+- Define a `main()` function to encapsulate all UI logic
+- Use `st.session_state` to manage persistent state across reruns
+- Use `@st.cache_data` to cache expensive computations
+- Avoid global variables and initialize all variables inside `main()`
 
-6. Critical File Paths:
-You MUST use these exact absolute paths when accessing files:
-{auxiliary_file_paths}
-
-7. Integration Context (For Reference):
-The following context is provided to help you understand the overall task and API requirements:
-{context}
-
-8. Avoid common bugs:
-- Initialize session_state variables properly
-- Use `with st.form():` context manager
-- Avoid global variables
-- Validate file types before processing
+6. Bug Prevention Checklist:
+- **ALWAYS import ALL necessary modules for visualization**
+- Strictly match API payload format
+- Validate input data types and formats using `isinstance()`, `.strip()`, `.lower()`, etc.
+- **Cast all text-based inputs to string before rendering or processing**, e.g., `str(label)`
+- Check API response structure before processing
+- Handle empty responses gracefully
+- Use try-except blocks for all API calls and image processing
+- For drawing functions:
+  • Verify coordinates are within image bounds
+  • **Convert labels to strings before drawing or using in UI components**
+  • Add fallbacks for missing or malformed data
+- **Ensure all string operations (e.g., `.in`, `.split()`) are only applied to variables of type `str`**
+- Test with sample data before deployment
 
 Final Instructions:
-- Create a main function `def main():` containing all UI logic
-- The script must start with `import streamlit as st`
-- Components must match the data types described
-- Use absolute paths from Critical File Paths section
+- Output a valid, complete Python script with `main()` as the entry point.
+- Include the call `if __name__ == "__main__": main()` at the end.
+- Ensure that all components and data handling strictly follow the structure, formats, and rules above.

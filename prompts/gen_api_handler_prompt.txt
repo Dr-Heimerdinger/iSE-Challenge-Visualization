@@ -27,3 +27,13 @@ Important Considerations:
 - The UI has these components: {json.dumps(context['ui_components'], indent=2)}
 - Pay special attention to: {context['input_format'].get('special_notes', '')}
 - Always use absolute paths for files: {json.dumps(context.get('auxiliary_files', {}), indent=2)}
+
+Notes:
+- The API always expects a JSON object with a structure exactly matching `Input Format`.
+- You must infer the correct preprocessing from the field types and verified input examples:
+  • For images: convert to base64 string.
+  • For audio: convert to float list and sampling rate using `librosa` or `soundfile`.
+  • For text: strip, normalize, or tokenize as needed.
+  • For CSV/time-series/tabular: load as dataframe or dict of columns.
+- Do NOT assume base64 encoding for audio unless explicitly specified.
+- Always validate and convert types (e.g., ensure label is `str`, confidence is `float`).
