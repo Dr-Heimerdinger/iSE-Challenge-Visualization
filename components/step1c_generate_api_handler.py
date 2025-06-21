@@ -93,7 +93,7 @@ def run(task_info: dict) -> dict | None:
         try:
             user_prompt = user_prompt_template.format(**prompt_variables)
         except Exception as e:
-            print(f"❌ Error formatting prompt: {e}")
+            # print(f"❌ Error formatting prompt: {e}")
             # Thử format thủ công nếu có lỗi
             user_prompt = user_prompt_template
             for key, value in prompt_variables.items():
