@@ -19,6 +19,25 @@ UI Guidelines:
   • Video: support preview with sound if possible
   • Tabular/CSV: `st.file_uploader`, load with `pandas.read_csv`
   • Time Series: visualize using `st.line_chart`, `st.altair_chart`
+  
+- Code Generation: 
+  • Use `st.text_area` for problem description
+  • Display generated code in `st.code` block with syntax highlighting
+  • Show test results in expandable `st.expander`
+- Depth Estimation:
+  • Display depth map as heatmap using `plt.imshow` with 'viridis' colormap
+  • Use `st.pyplot` to render depth visualization
+- Image Segmentation:
+  • Convert segmentation mask to color-coded image
+  • Show original and segmented images side-by-side
+- Keypoint Detection:
+  • Draw keypoints on image using `ImageDraw`
+  • Connect keypoints with skeleton lines
+  • Display confidence scores in tooltips
+- Object Detection in Video:
+  • Use `st.video` for video preview
+  • Process video frame-by-frame with progress bar
+  • Display sample annotated frames
 
 API Integration:
 - You must use the following function to call the backend model:
@@ -36,6 +55,20 @@ Output Visualization:
 - Time Series: plot inputs and predictions, use `st.dataframe` for metrics
 - General: all scores must be formatted as float, all labels as string
 
+# Bổ sung visualization đặc thù:
+- Code Generation: 
+  • Use `st.code(generated_code, language='python')` 
+  • Show test cases in expandable sections with pass/fail status
+- Depth Estimation:
+  • Normalize depth values before visualization
+  • Add colorbar to depth map for scale reference
+- Keypoint Detection:
+  • Use different colors for different keypoint types
+  • Show confidence scores on hover
+- Object Detection in Video:
+  • Generate annotated video preview
+  • Allow frame-by-frame navigation
+
 Implementation Constraints:
 - Script must start with `import streamlit as st` and include all required libraries.
 - Use `st.session_state` to store multi-step results.
@@ -44,13 +77,25 @@ Implementation Constraints:
 - Include `if __name__ == "__main__": main()` at the bottom.
 - Ensure the script is runnable and bug-free under unknown test conditions.
 
+# Ràng buộc đặc thù:
+- Video Processing:
+  • Use `tempfile` for video storage
+  • Limit video length to 30 seconds for performance
+  • Show processing progress with `st.progress`
+- Large Images:
+  • Resize images > 1024px before processing
+  • Use `use_column_width=True` for display
+
 Validation Checklist:
 - Validate file types and content before use.
 - Use `isinstance()` and `try-except` blocks to handle all user input and API response errors.
 - Always check for missing or malformed fields in API response before displaying.
 - Convert labels to strings and scores to floats before display or use.
 
-If
+# Kiểm tra bổ sung:
+- Video Files: Verify supported formats (mp4, avi, mov)
+- Keypoint Detection: Validate skeleton connections
+- Code Generation: Sanitize user input to prevent code injection
 
 Bug Prevention Checklist:
 - Strictly match API payload format: 
@@ -65,3 +110,14 @@ Bug Prevention Checklist:
 - Always use `st.form()` context properly (`with st.form("form_name"):`)
 - Avoid deprecated Streamlit parameters (e.g., replace `use_column_width` with `use_container_width`)
 - **TEST payload structure before sending: print(payload) or log it**
+
+Recommen
+- Video Processing:
+  • Check frame count before processing
+  • Handle variable frame rates
+- Keypoint Detection:
+  • Normalize coordinates to image dimensions
+  • Handle missing keypoints (score < 0.5)
+- Depth Estimation:
+  • Clip extreme depth values
+  • Add min/max depth indicators
