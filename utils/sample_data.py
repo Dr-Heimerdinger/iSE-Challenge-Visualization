@@ -6,20 +6,15 @@ import random
 # ==============================================================================
 
 # Dữ liệu cho tác vụ 'text_classification'.
-# Phù hợp với input_format yêu cầu một 'texts' là string.
-# task.yaml: text_classification/task.yaml
 SAMPLE_TEXT = "The sun finally came out after days of rain, what a joyous day!"
 
 # Dữ liệu cho tác vụ 'image_classification' và 'object_detection_in_image'.
-# Đây là một ảnh PNG 1x1 pixel trong suốt, được mã hóa base64.
-# Phù hợp với input_format yêu cầu 'data' là một chuỗi base64.
-# task.yaml: image_classification/task.yaml, object_detection_in_image/task.yaml
 SAMPLE_BASE64_IMAGE = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
 
-# Dữ liệu URL hình ảnh mẫu, hữu ích cho các tác vụ có thể yêu cầu URL.
+# Dữ liệu URL hình ảnh mẫu
 SAMPLE_IMAGE_URL = "https://i.imgur.com/8qC4i3a.jpeg"
 
-# Dữ liệu JSON mẫu chung cho các trường hợp không xác định.
+# Dữ liệu JSON mẫu chung
 SAMPLE_JSON = {
     "key1": "value1",
     "key2": 123
@@ -29,11 +24,7 @@ SAMPLE_JSON = {
 # == CÁC MẪU DỮ LIỆU CẤU TRÚC PHỨC TẠP (COMPLEX STRUCTURE SAMPLES)         ==
 # ==============================================================================
 
-# Dữ liệu cho tác vụ 'tabular_Youtubeing'.
-# Cấu trúc này khớp chính xác với input_format yêu cầu một object chứa 'table' và 'queries'.
-# - table: một object chứa 'columns' (List[str]) và 'data' (List[List[Any]]).
-# - queries: một List[str].
-# task.yaml: tabular_Youtubeing/task.yaml
+# Dữ liệu cho tác vụ 'tabular_Youtubeing'
 SAMPLE_TABULAR_PAYLOAD = {
     "table": {
         "columns": ["Player", "Team", "Points"],
@@ -49,9 +40,36 @@ SAMPLE_TABULAR_PAYLOAD = {
     ]
 }
 
-# Dữ liệu cho tác vụ 'audio_classification'.
-
+# Dữ liệu cho tác vụ 'audio_classification'
 SAMPLE_AUDIO_PAYLOAD = {
     "audio_data": [random.uniform(-1.0, 1.0) for _ in range(1500)],
     "sampling_rate": 48000
+}
+
+# Dữ liệu cho tác vụ 'time_series_forecasting'
+SAMPLE_TIMESERIES_PAYLOAD = {
+    "table": {
+        "columns": ["timestamp", "open", "high", "low", "close", "volume"],
+        "data": [
+            ["2025-01-01 00:00:00", 0.25, 0.26, 0.24, 0.245, 100000],
+            ["2025-01-01 01:00:00", 0.245, 0.25, 0.24, 0.248, 120000],
+            ["2025-01-01 02:00:00", 0.248, 0.255, 0.247, 0.252, 110000],
+            ["2025-01-01 03:00:00", 0.252, 0.26, 0.251, 0.258, 150000],
+            ["2025-01-01 04:00:00", 0.258, 0.263, 0.257, 0.26, 130000]
+        ]
+    },
+    "field_names": ["open", "close", "volume"],
+    "prediction_length": 5,
+    "num_samples": 5
+}
+
+# Dữ liệu cho tác vụ 'code_generation'
+SAMPLE_CODE_GENERATION_PAYLOAD = {
+    "prompt": "Write a function to calculate the factorial of a number",
+    "entry_point": "factorial"
+}
+
+# Dữ liệu chung cho các tác vụ xử lý hình ảnh
+SAMPLE_IMAGE_PAYLOAD = {
+    "data": SAMPLE_BASE64_IMAGE
 }

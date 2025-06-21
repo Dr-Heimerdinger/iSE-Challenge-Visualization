@@ -35,8 +35,6 @@ def build_payload_from_schema(input_format_desc: dict) -> dict:
         
     structure_keys = set(input_format_desc["structure"].keys())
 
-    # --- SỬA LỖI BẮT ĐẦU TẠI ĐÂY ---
-
     # 1. Ưu tiên kiểm tra các cấu trúc phức tạp đã biết.
     # Kiểm tra cho tác vụ Tabular Question Answering
     if "table" in structure_keys and "queries" in structure_keys:
@@ -48,8 +46,30 @@ def build_payload_from_schema(input_format_desc: dict) -> dict:
         print("INFO: Detected 'Audio Classification' structure. Using pre-defined complex payload.")
         return sample_data.SAMPLE_AUDIO_PAYLOAD
 
+    # Kiểm tra cho tác vụ Time Series Forecasting
+    required_ts_keys = {'table', 'field_names', 'prediction_length', 'num_samples'}
+    if required_ts_keys.issubset(structure_keys):
+        print("INFO: Detected 'Time Series Forecasting' structure. Using pre-defined complex payload.")
+        return sample_data.SAMPLE_TIMESERIES_PAYLOAD
+
+    # Kiểm tra cho tác vụ Code Generation
+    if "prompt" in structure_keys and "entry_point" in structure_keys:
+        print("INFO: Detected 'Code Generation' structure. Using pre-defined complex payload.")
+        return sample_data.SAMPLE_CODE_GENERATION_PAYLOAD
+
+    # Kiểm tra cho các tác vụ xử lý hình ảnh (dùng chung một mẫu)
+    image_tasks = {
+        "depth_estimation": ["data"],
+        "image_segmentation": ["data"],
+        "keypoint_detection": ["data"],
+        "object_detection_in_video": ["data"]
+    }
+    
+    for task_name, required_keys in image_tasks.items():
+        if all(key in structure_keys for key in required_keys):
+            print(f"INFO: Detected '{task_name}' structure. Using image payload.")
+            return sample_data.SAMPLE_IMAGE_PAYLOAD
+
     # 2. Nếu không phải cấu trúc phức tạp, sử dụng builder đệ quy đơn giản.
     print("INFO: No complex structure detected. Using simple recursive builder.")
     return _populate_simple_structure(input_format_desc["structure"])
-    
-    # --- KẾT THÚC SỬA LỖI ---

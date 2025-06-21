@@ -5,7 +5,7 @@ load_dotenv()
 
 # --- PATHS ---
 GENERATED_CODE_DIR = "generated_code"
-TASK_EXAMPLES_DIR = "task_example"
+TASK_EXAMPLES_DIR = "private_test"
 PROMPTS_DIR = "prompts"
 # Thêm thư mục cho React
 REACT_APP_DIR = "generated_react_app"

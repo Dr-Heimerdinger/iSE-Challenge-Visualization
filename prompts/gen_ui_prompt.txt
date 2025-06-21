@@ -4,6 +4,10 @@ Task Details:
 - Task Type: {task_type}
 - Task Description: {task_description}
 
+Critical File Paths:
+You MUST use these exact absolute paths when accessing files:
+{auxiliary_file_paths}
+
 UI Guidelines:
 - Follow modern Streamlit layout best practices using `st.columns`, `st.form`, and sidebars.
 - Required UI Components:
@@ -45,6 +49,8 @@ Validation Checklist:
 - Use `isinstance()` and `try-except` blocks to handle all user input and API response errors.
 - Always check for missing or malformed fields in API response before displaying.
 - Convert labels to strings and scores to floats before display or use.
+
+If
 
 Bug Prevention Checklist:
 - Strictly match API payload format: 
