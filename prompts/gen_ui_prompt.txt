@@ -55,7 +55,7 @@ Output Visualization:
 - Time Series: plot inputs and predictions, use `st.dataframe` for metrics
 - General: all scores must be formatted as float, all labels as string
 
-# Bổ sung visualization đặc thù:
+# Adding visualization đặc thù:
 - Code Generation: 
   • Use `st.code(generated_code, language='python')` 
   • Show test cases in expandable sections with pass/fail status
@@ -77,7 +77,7 @@ Implementation Constraints:
 - Include `if __name__ == "__main__": main()` at the bottom.
 - Ensure the script is runnable and bug-free under unknown test conditions.
 
-# Ràng buộc đặc thù:
+# Unique Constrains:
 - Video Processing:
   • Use `tempfile` for video storage
   • Limit video length to 30 seconds for performance
@@ -92,10 +92,11 @@ Validation Checklist:
 - Always check for missing or malformed fields in API response before displaying.
 - Convert labels to strings and scores to floats before display or use.
 
-# Kiểm tra bổ sung:
+# Additional Check:
 - Video Files: Verify supported formats (mp4, avi, mov)
 - Keypoint Detection: Validate skeleton connections
 - Code Generation: Sanitize user input to prevent code injection
+- import necessary libraries like matplotlib, np, librosa, etc
 
 Bug Prevention Checklist:
 - Strictly match API payload format: 
@@ -111,7 +112,7 @@ Bug Prevention Checklist:
 - Avoid deprecated Streamlit parameters (e.g., replace `use_column_width` with `use_container_width`)
 - **TEST payload structure before sending: print(payload) or log it**
 
-Recommen
+Recomment:
 - Video Processing:
   • Check frame count before processing
   • Handle variable frame rates
