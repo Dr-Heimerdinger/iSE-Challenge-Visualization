@@ -13,12 +13,7 @@ UI Guidelines:
 - Required UI Components:
   {visualize_features}
 - Always match input widgets to the data type:
-  • Images: `st.file_uploader` + `Image.open()` + `base64` if required
-  • Audio: `st.file_uploader` for `.wav`, then convert to float list using `librosa`
-  • Text: `st.text_area`, pre-process if needed
-  • Video: support preview with sound if possible
-  • Tabular/CSV: `st.file_uploader`, load with `pandas.read_csv`
-  • Time Series: visualize using `st.line_chart`, `st.altair_chart`
+
   
 - Code Generation: 
   • Use `st.text_area` for problem description
